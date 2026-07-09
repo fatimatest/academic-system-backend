@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Notification;
 use App\Models\Submission;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Carbon;
 use App\Http\Controllers\DoctorController;
@@ -77,12 +78,22 @@ Route::post('/login', function (Request $request) {
             ->orWhere('id', $request->email)
             ->first();
 
+        // === LOG: تم استلام البريد الإلكتروني ===
+        Log::info('[LOGIN] Email received', ['email' => $request->email]);
+
         if (!$user) {
+            Log::info('[LOGIN] User not found for email', ['email' => $request->email]);
             return response()->json([
                 'success' => false,
                 'message' => 'المستخدم غير موجود'
             ], 404);
         }
+
+        Log::info('[LOGIN] User found', [
+            'id' => $user->id,
+            'email' => $user->email,
+            'role' => $user->role,
+        ]);
 
         $passwordOk = false;
 
@@ -90,8 +101,16 @@ Route::post('/login', function (Request $request) {
             if (Hash::check($request->password, $user->password)) {
                 $passwordOk = true;
             }
+            Log::info('[LOGIN] Hash::check result', [
+                'result' => $passwordOk,
+                'password_length' => strlen($user->password),
+                'hash_prefix' => substr($user->password, 0, 10),
+                'role' => $user->role,
+            ]);
         } catch (\Throwable $e) {
-            // stored password is not bcrypt — fall through to plain text check
+            Log::info('[LOGIN] Hash::check threw exception', [
+                'message' => $e->getMessage(),
+            ]);
         }
 
         if (!$passwordOk && $request->password === $user->password) {
