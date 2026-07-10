@@ -811,10 +811,19 @@ Route::get('app-info', function () {
             'size' => $sizeMB,
             'last_updated' => $lastModified,
             'min_android_version' => config('app.app_min_android'),
-            'apk_url' => url('/downloads/app-release.apk'),
+            'apk_url' => url('/api/download-apk'),
             'description' => config('app.app_description'),
         ],
     ]);
+});
+
+// تحميل ملف APK للتطبيق
+Route::get('/download-apk', function () {
+    $apkPath = public_path('downloads/app-release.apk');
+    if (!file_exists($apkPath)) {
+        return response()->json(['success' => false, 'message' => 'ملف التطبيق غير موجود'], 404);
+    }
+    return response()->download($apkPath, 'app-release.apk');
 });
 
 // Course settings
